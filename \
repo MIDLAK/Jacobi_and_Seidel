@@ -1,0 +1,141 @@
+use std::io;
+//use std::{thread, time::Duration};
+use rand::Rng;
+
+const EPS: f64 = 0.001; //желаемая точность
+const MAX_ITER: i32 = 10_000;
+const ERROR_EPS: f64 = 10_000.0; //критичное значение ошибки
+
+///Вывод матрицы любых размерностей на экран
+fn print_matrix(matrix: Vec<Vec<f64>>) {
+    for row in &matrix {
+        println!("{row:?}");
+    }
+}
+
+///Наполнение матрицы случайными значениями от 1.00 до 100.99
+fn generate_matrix(matrix: &mut Vec<Vec<f64>>) {
+    for row in matrix {
+        for el in row {
+            *el = rand::thread_rng().gen_range(1.0..=100.0); 
+            *el = (*el * 100.0).round()/100.0;
+        }
+    }
+}
+
+///Вычисление корней СЛАУ методом Якоби
+///
+///# Параметры
+///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `x` - Начальное приближение.
+fn jacobi_test(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
+    let n = matrix.len();
+    let mut iters = 0; //подсчёт итераций
+
+    loop {
+        iters += 1;
+
+        let x_prev = x.clone();
+
+        let mut max_eps = 0.0;
+
+        //вычисление очередной итерации
+        for i in 0..n {
+            let coefficient = 1.0 / matrix[i][i];
+
+            //вычисление скобки
+            let mut difference = matrix[i][n];
+            for j in 0..n {
+                if i != j {
+                    difference -= matrix[i][j] * x[j];
+                }
+            }
+
+            //значение x на очередной итерации
+            x[i] = coefficient * difference;
+
+            //значение ошибки
+            let eps = (x[i] - x_prev[i]).abs();
+
+            //поиск максимальной ошибки на текущей итерации
+            if eps >= max_eps {
+                max_eps = eps;
+            }
+        }
+
+        if max_eps <= EPS {
+            return (true, iters);
+        }
+
+        if iters >= MAX_ITER || max_eps >= ERROR_EPS {
+            return (false, iters);
+        }
+    }
+                       
+    
+}
+
+fn main() {
+
+    println!("Точность {EPS}");
+
+    let mut count_gen: usize = 0;
+    let mut dimension: usize = 0;
+    
+    //цикл для получения верного ввода
+    loop {
+        println!("Введите размерность матрицы: ");
+
+        let mut dimension_str = String::new();
+
+        io::stdin()
+            .read_line(&mut dimension_str)
+            .expect("Ошибка ввода!");
+
+        dimension = match dimension_str.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+
+        println!("Количество генераций: ");
+
+        let mut count_gen_str = String::new();
+
+        io::stdin()
+            .read_line(&mut count_gen_str)
+            .expect("Ошибка ввода!");
+        
+        count_gen = match count_gen_str.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
+
+        break;
+    }
+
+    let mut iters = 0;
+    let mut success = 0;
+    let mut average_iters;
+
+    loop {
+        let mut matrix = vec![vec![0.0f64; dimension+1]; dimension];
+
+        generate_matrix(&mut matrix);
+        
+        let mut x = vec![1.0f64; dimension];
+
+        let result = jacobi_test(&mut matrix, &mut x);
+        if result.0 {
+            success += 1;
+            average_iters += result.1;
+        } 
+
+        iters += 1;
+
+        if iters >= count_gen { 
+            let ratio = 100 * success / count_gen;
+            print!("Сошлись {success} уравнений из {count_gen} ({ratio} %)");
+            break;
+        }
+    }
+}
