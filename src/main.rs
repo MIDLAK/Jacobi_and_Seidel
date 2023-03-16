@@ -173,22 +173,23 @@ fn main() {
             .read_line(&mut file_name)
             .expect("Ошибка ввода!");
 
-        println!("Введите размерность матрицы: ");
-
-        let mut dimension_str = String::new();
-
-        io::stdin()
-            .read_line(&mut dimension_str)
-            .expect("Ошибка ввода!");
-
-        dimension = match dimension_str.trim().parse() {
-            Ok(num) => num,
-            Err(_) => continue,
-        };
 
         count_gen = 1;
         
         if file_name.trim().is_empty() {
+            println!("Введите размерность матрицы: ");
+
+            let mut dimension_str = String::new();
+
+            io::stdin()
+                .read_line(&mut dimension_str)
+                .expect("Ошибка ввода!");
+
+            dimension = match dimension_str.trim().parse() {
+                Ok(num) => num,
+                Err(_) => continue,
+            };
+
             println!("Количество генераций: ");
 
             let mut count_gen_str = String::new();
@@ -215,6 +216,10 @@ fn main() {
 
     let mut success_seidel = 0.0;
     let mut average_iters_seidel = 0.0;
+
+    if file_flag {
+        dimension = read_matrix_from_file(file_name.trim()).len();
+    }
 
     loop {
         let mut matrix = vec![vec![0.0f64; dimension+1]; dimension];
