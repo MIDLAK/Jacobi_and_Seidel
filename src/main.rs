@@ -3,7 +3,6 @@ use std::io;
 use rand::Rng;
 use std::fs::File;
 
-const EPS: f64 = 0.01; //желаемая точность
 const MAX_ITER: i32 = 10_000;
 const ERROR_EPS: f64 = 10_000.0; //критичное значение ошибки
 
@@ -28,11 +27,14 @@ fn generate_matrix(matrix: &mut Vec<Vec<f64>>) {
 ///
 ///# Параметры
 ///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `epsilon` - Желаемая точность вычислений.
+///* `out_flag` - Нужно ли выводить результат? true/false.
 ///* `x` - Начальное приближение.
 ///
 ///# Возвращаемые значения
 ///Функция возвращает кортеж из значений успеха (true или false) и кол-ва итераций.
-fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
+fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>, 
+          epsilon: f64, out_flag: bool) -> (bool, i32) {
     let n = matrix.len();
     let mut iters = 0; //подсчёт итераций
 
@@ -73,7 +75,14 @@ fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
             }
         }
 
-        if max_eps <= EPS {
+        if max_eps <= epsilon {
+            if out_flag {
+                print!("(Якоби) x = ");
+                for el in x {
+                    print!(" {el}");
+                }
+                println!();
+            }
             return (true, iters);
         }
 
@@ -87,11 +96,14 @@ fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
 ///
 ///# Параметры
 ///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `epsilon` - Желаемая точность вычислений.
+///* `out_flag` - Нужно ли выводить результат? true/false.
 ///* `x` - Начальное приближение.
 ///
 ///# Возвращаемые значения
 ///Функция возвращает кортеж из значений успеха (true или false) и кол-ва итераций.
-fn seidel(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
+fn seidel(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>, 
+          epsilon: f64, out_flag: bool) -> (bool, i32) {
     let n = matrix.len();
     let mut iters = 0; //подсчёт итераций
 
@@ -132,7 +144,14 @@ fn seidel(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> (bool, i32) {
             }
         }
 
-        if max_eps <= EPS {
+        if max_eps <= epsilon {
+            if out_flag {
+                print!("(Зейдель) x = ");
+                for el in x {
+                    print!(" {el}");
+                }
+                println!();
+            }
             return (true, iters);
         }
 
@@ -157,10 +176,9 @@ fn read_matrix_from_file(file_name: &str) -> Vec<Vec<f64>> {
 }
 
 fn main() {
-    println!("Точность {EPS}");
-
     let mut count_gen: usize = 0;
     let mut dimension: usize = 0;
+    let mut eps: f64 = 0.0;
 
     let mut file_name = String::new();
     let mut file_flag = false;
@@ -172,6 +190,18 @@ fn main() {
         io::stdin()
             .read_line(&mut file_name)
             .expect("Ошибка ввода!");
+
+        println!("Введите точность eps: ");
+
+        let mut eps_str = String::new();
+        io::stdin()
+            .read_line(&mut eps_str)
+            .expect("Ошибка ввода!");
+            
+        eps = match eps_str.trim().parse() {
+            Ok(num) => num,
+            Err(_) => continue,
+        };
 
 
         count_gen = 1;
@@ -227,13 +257,14 @@ fn main() {
         if file_flag {
             let arr = read_matrix_from_file(file_name.trim());
             matrix = arr.clone();
+            print_matrix(matrix.clone());
         } else {
             generate_matrix(&mut matrix);
         }
         
         let mut x = vec![0.0f64; dimension];
 
-        let result_seidel = seidel(&mut matrix, &mut x);
+        let result_seidel = seidel(&mut matrix, &mut x, eps, file_flag);
         if result_seidel.0 {
             success_seidel += 1.0;
             average_iters_seidel += result_seidel.1 as f64;
@@ -241,7 +272,7 @@ fn main() {
         
         x = vec![0.0f64; dimension];
 
-        let result_jacobi = jacobi(&mut matrix, &mut x);
+        let result_jacobi = jacobi(&mut matrix, &mut x, eps, file_flag);
         if result_jacobi.0 {
             success += 1.0;
             average_iters += result_jacobi.1 as f64;
@@ -251,17 +282,21 @@ fn main() {
         iters += 1;
 
         if iters >= count_gen { 
-            println!("ЯКОБИ");
+            println!("--- МЕТОД ЯКОБИ ---");
             let ratio = 100.0 * success / count_gen as f64;
             let average_iters = average_iters / success as f64;
             println!("Сошлись {success} уравнений из {count_gen} ({ratio:.4} %).");
             println!("Среднее число итераций составило {average_iters:.4}.");
+            println!("Точность: {eps}.");
 
-            println!("ЗЕЙДЕЛЬ");
+            println!();
+
+            println!("--- МЕТОД ЗЕЙДЕЛЯ ---");
             let ratio_seidel = 100.0 * success_seidel / count_gen as f64;
             let average_iters_seidel = average_iters_seidel / success_seidel as f64;
             println!("Сошлись {success_seidel} уравнений из {count_gen} ({ratio_seidel:.4} %).");
             println!("Среднее число итераций составило {average_iters_seidel:.4}.");
+            println!("Точность: {eps}.");
 
             break;
         }
