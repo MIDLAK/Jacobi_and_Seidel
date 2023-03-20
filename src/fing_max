@@ -77,10 +77,9 @@ fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>,
 
         if max_eps <= epsilon {
             if out_flag {
-                println!();
                 print!("(Якоби) x = ");
                 for el in x {
-                    print!(" {el:.4}");
+                    print!(" {el}");
                 }
                 println!();
             }
@@ -147,10 +146,9 @@ fn seidel(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>,
 
         if max_eps <= epsilon {
             if out_flag {
-                println!();
                 print!("(Зейдель) x = ");
                 for el in x {
-                    print!(" {el:.4}");
+                    print!(" {el}");
                 }
                 println!();
             }
@@ -300,9 +298,7 @@ fn main() {
         if file_flag {
             let arr = read_matrix_from_file(file_name.trim());
             matrix = arr.clone();
-            println!("matrix: ");
             print_matrix(matrix.clone());
-            println!();
         } else {
             generate_matrix(&mut matrix);
         }
@@ -314,30 +310,28 @@ fn main() {
         if result_seidel.0 {
             success_seidel += 1.0;
             average_iters_seidel += result_seidel.1 as f64;
-
-            // вычисление невязок и поиск максимальной по модулю из них для метода Зейделя
-            let mut residuals_seidel = residuals(&mut matrix, &mut x);
-            average_residuals_seidel.push(find_abs_max(&mut residuals_seidel));
         }
+
+        // вычисление невязок и поиск максимальной по модулю из них для метода Зейделя
+        let mut residuals_seidel = residuals(&mut matrix, &mut x);
+        average_residuals_seidel.push(find_abs_max(&mut residuals_seidel));
 
         x = vec![0.0f64; dimension];
 
         let result_jacobi = jacobi(&mut matrix, &mut x, eps, file_flag);
 
+        // вычисление невязок и поиск максимальной по модулю из них для методя Якоби
+        let mut residuals_jacobi = residuals(&mut matrix, &mut x);
+        average_residuals_jacobi.push(find_abs_max(&mut residuals_jacobi));
+
         if result_jacobi.0 {
             success += 1.0;
             average_iters += result_jacobi.1 as f64;
-            
-            // вычисление невязок и поиск максимальной по модулю из них для методя Якоби
-            let mut residuals_jacobi = residuals(&mut matrix, &mut x);
-            average_residuals_jacobi.push(find_abs_max(&mut residuals_jacobi));
         }
             
         iters += 1;
 
         if iters >= count_gen { 
-            println!();
-
             println!("--- МЕТОД ЯКОБИ ---");
             let ratio = 100.0 * success / count_gen as f64;
             let average_iters = average_iters / success as f64;
