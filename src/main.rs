@@ -6,27 +6,27 @@ use std::fs::File;
 const MAX_ITER: i32 = 10_000;
 const ERROR_EPS: f64 = 10_000.0; //критичное значение ошибки
 
-///Вывод матрицы любой размерности на экран
+///Вывод матрицы любой размерности на экран.
 fn print_matrix(matrix: Vec<Vec<f64>>) {
     for row in &matrix {
         println!("{row:?}");
     }
 }
 
-///Наполнение матрицы случайными значениями от -10.00 до 10.99
+///Наполнение матрицы случайными значениями от 1.00 до 100.99
 fn generate_matrix(matrix: &mut Vec<Vec<f64>>) {
     for row in matrix {
         for el in row {
-            *el = rand::thread_rng().gen_range(-10.0..=10.0); 
+            *el = rand::thread_rng().gen_range(1.0..=100.0); 
             *el = (*el * 100.0).round()/100.0;
         }
     }
 }
 
-///Вычисление корней СЛАУ методом Якоби
+///Вычисление корней СЛАУ методом Якоби.
 ///
 ///# Параметры
-///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены.
 ///* `epsilon` - Желаемая точность вычислений.
 ///* `out_flag` - Нужно ли выводить результат? true/false.
 ///* `x` - Начальное приближение.
@@ -96,7 +96,7 @@ fn jacobi(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>,
 ///Вычисление корней СЛАУ методом Зейделя
 ///
 ///# Параметры
-///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены.
 ///* `epsilon` - Желаемая точность вычислений.
 ///* `out_flag` - Нужно ли выводить результат? true/false.
 ///* `x` - Начальное приближение.
@@ -164,7 +164,7 @@ fn seidel(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>,
 }
 
 /// Чтение матрицы из файла c именем file_name.
-/// Файл должен быть расположен в той же дирректории, где и *.rc файл
+/// Файл должен быть расположен в той же дирректории, где и *.rc файл.
 fn read_matrix_from_file(file_name: &str) -> Vec<Vec<f64>> {
     let f = BufReader::new(File::open(file_name).unwrap());
 
@@ -180,7 +180,7 @@ fn read_matrix_from_file(file_name: &str) -> Vec<Vec<f64>> {
 /// Вычисление невязок
 ///
 /// # Параметры
-///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены;
+///* `matrix` - Mатрица коэффициентов. Последним столбцом распологаются свободные члены.
 ///* `x` - Вектор, содержащий в себе найденное решение.
 ///
 /// # Возвращаемое значение
@@ -203,6 +203,8 @@ fn residuals(matrix: &mut Vec<Vec<f64>>, x: &mut Vec<f64>) -> Vec<f64> {
     return residuals;
 }
 
+/// Поиск максимального по модулю значения вектора.
+/// Возвращает максимальное значение по модулю (его само, а не модуль).
 fn find_abs_max(vec: &mut Vec<f64>) -> f64 {
     let mut max = 0.0f64;
 
@@ -213,6 +215,48 @@ fn find_abs_max(vec: &mut Vec<f64>) -> f64 {
     }
 
     return max;
+}
+
+/// Определение наличия дигонального преобладания в матрице.
+///
+/// # Параметры
+/// * `matrix' - Анализируемая матрица.
+///
+/// # Возвращаемое значение
+/// Функция возвращает true или false в зависимости от наличия (или неналичия) диагонального
+/// преобладания.
+fn is_diagonal_dominance(matrix: &mut Vec<Vec<f64>>) -> bool {
+    let n = matrix.len();
+    let mut diagonal_dominance = false;
+    //встретилось ли хоть одно строгое неравество?
+    let mut strict = false; 
+
+    for i in 0..n {
+        let mut sum = 0.0;
+        diagonal_dominance = false;
+
+        for j in 0..n {
+            if i != j {
+                sum += matrix[i][j].abs();
+            }
+        }
+
+        if sum <= matrix[i][i] {
+            diagonal_dominance = true;
+        }
+
+        // проверка на строгое неравенство
+        if sum < matrix[i][i] && !strict {
+            strict = true;
+        }
+    }
+
+    // хотя бы одно из неравенств является строгим?
+    if strict == false {
+        diagonal_dominance = false;
+    }
+
+    return diagonal_dominance;
 }
 
 fn main() {
@@ -231,7 +275,7 @@ fn main() {
             .read_line(&mut file_name)
             .expect("Ошибка ввода!");
 
-        println!("Введите точность eps: ");
+        println!("\nВведите точность eps: ");
 
         let mut eps_str = String::new();
         io::stdin()
@@ -246,7 +290,7 @@ fn main() {
         count_gen = 1;
         
         if file_name.trim().is_empty() {
-            println!("Введите размерность матрицы: ");
+            println!("\nВведите размерность матрицы: ");
 
             let mut dimension_str = String::new();
 
@@ -259,7 +303,7 @@ fn main() {
                 Err(_) => continue,
             };
 
-            println!("Количество генераций: ");
+            println!("\nКоличество генераций: ");
 
             let mut count_gen_str = String::new();
 
@@ -300,8 +344,16 @@ fn main() {
         if file_flag {
             let arr = read_matrix_from_file(file_name.trim());
             matrix = arr.clone();
-            println!("matrix: ");
+            println!("\nmatrix: ");
             print_matrix(matrix.clone());
+            println!();
+            print!("Наличие диагонального преобладания: ");
+            let is_diag = is_diagonal_dominance(&mut matrix);
+            if is_diag {
+                print!("да");
+            } else {
+                print!("нет");
+            }
             println!();
         } else {
             generate_matrix(&mut matrix);
